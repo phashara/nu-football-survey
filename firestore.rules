@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Admin authorization check:
+    // 1. Matches admin document in /admins/{uid}, OR
+    // 2. Verified admin email matching allowlist (e.g. phasharak@gmail.com)
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          request.auth.token.email_verified == true &&
+          request.auth.token.email in ['phasharak@gmail.com']
+        )
+      );
+    }
+
+    // Time window check: Survey closes at 31 Oct 2026 23:59:59 Thailand Time (UTC+7)
+    // 2026-10-31 16:59:59 UTC is timestamp 1793465999000
+    function isWithinSubmissionWindow() {
+      return request.time < timestamp.date(2026, 11, 1);
+    }
+
+    // Survey Response Document Validation
+    function isValidSurveyResponse(data) {
+      return data.keys().hasAll([
+        'userId', 'surveyVersion', 'isNUPersonnel', 'primaryDepartmentId', 
+        'primaryDepartmentName', 'agreementLevel', 'intent', 'acknowledgedDisclaimer'
+      ]) &&
+      data.userId == request.auth.uid &&
+      data.surveyVersion is string && data.surveyVersion.size() <= 32 &&
+      data.isNUPersonnel == true &&
+      data.primaryDepartmentId is string && data.primaryDepartmentId.size() <= 64 &&
+      data.primaryDepartmentName is string && data.primaryDepartmentName.size() <= 200 &&
+      data.agreementLevel in ['strongly_agree', 'agree', 'not_sure', 'disagree', 'strongly_disagree'] &&
+      data.intent in ['join_member', 'receive_news', 'feedback_only'] &&
+      data.acknowledgedDisclaimer == true;
+    }
+
+    // Contact Information Validation
+    function isValidSurveyContact(data) {
+      return data.keys().hasAll(['userId', 'surveyVersion', 'fullName', 'intent']) &&
+      data.userId == request.auth.uid &&
+      data.surveyVersion is string && data.surveyVersion.size() <= 32 &&
+      data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 200 &&
+      data.intent in ['join_member', 'receive_news'];
+    }
+
+    // ==========================================
+    // 1. Survey Responses (แยกคำตอบออกจากข้อมูลติดต่อ)
+    // ==========================================
+    match /survey_responses/{responseId} {
+      // Document ID must follow deterministic naming pattern: {userId}_2569_v1
+      // Only the respondent can read their own document; admins can get and list all.
+      allow get: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // List is restricted strictly to Admins to protect privacy of other respondents
+      allow list: if isAdmin();
+
+      // Creation: Anonymous or authenticated respondent for own document
+      allow create: if isSignedIn() &&
+        isValidId(responseId) &&
+        responseId == request.auth.uid + '_2569_v1' &&
+        isWithinSubmissionWindow() &&
+        isValidSurveyResponse(request.resource.data) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      // Update: Respondent can update their own previous draft/response before close
+      allow update: if isSignedIn() &&
+        isValidId(responseId) &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        isWithinSubmissionWindow() &&
+        isValidSurveyResponse(request.resource.data);
+
+      // Deletion is forbidden to prevent data loss
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 2. Survey Contacts (ข้อมูลติดต่อส่วนบุคคลแยกต่างหาก)
+    // ==========================================
+    match /survey_contacts/{contactId} {
+      // Only the owner can get their own contact; Admins can get and list.
+      allow get: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      allow list: if isAdmin();
+
+      allow create: if isSignedIn() &&
+        isValidId(contactId) &&
+        contactId == request.auth.uid + '_2569_v1' &&
+        isWithinSubmissionWindow() &&
+        isValidSurveyContact(request.resource.data) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      allow update: if isSignedIn() &&
+        isValidId(contactId) &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        isWithinSubmissionWindow() &&
+        isValidSurveyContact(request.resource.data);
+
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 3. Admin Allowlist
+    // ==========================================
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only manageable through Firebase Console or Admin SDK
+    }
+
+    // ==========================================
+    // 4. System Settings
+    // ==========================================
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

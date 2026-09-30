@@ -1,0 +1,187 @@
+{
+  "entities": {
+    "SurveyResponse": {
+      "title": "SurveyResponse",
+      "description": "Responses to the draft football club survey at Naresuan University",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the respondent"
+        },
+        "surveyVersion": {
+          "type": "string",
+          "description": "Survey form version identifier"
+        },
+        "isNUPersonnel": {
+          "type": "boolean",
+          "description": "Confirmation that the respondent is Naresuan University personnel"
+        },
+        "primaryDepartmentId": {
+          "type": "string",
+          "description": "Primary department ID selected"
+        },
+        "primaryDepartmentName": {
+          "type": "string",
+          "description": "Primary department name"
+        },
+        "customDepartmentName": {
+          "type": "string",
+          "description": "Custom department name if not in list"
+        },
+        "subDepartment": {
+          "type": "string",
+          "description": "Optional sub-department or division"
+        },
+        "agreementLevel": {
+          "type": "string",
+          "description": "Likert scale agreement with project draft"
+        },
+        "expectedBenefits": {
+          "type": "array",
+          "description": "List of expected benefits selected"
+        },
+        "concerns": {
+          "type": "string",
+          "description": "Concerns regarding the draft"
+        },
+        "suggestions": {
+          "type": "string",
+          "description": "Additional suggestions"
+        },
+        "intent": {
+          "type": "string",
+          "description": "Intent regarding membership or participation"
+        },
+        "activityTypes": {
+          "type": "array",
+          "description": "Preferred activity types"
+        },
+        "experienceLevel": {
+          "type": "string",
+          "description": "Football experience level"
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Desired frequency of participation"
+        },
+        "obstacles": {
+          "type": "array",
+          "description": "Perceived obstacles"
+        },
+        "preferredTimeSlots": {
+          "type": "array",
+          "description": "Pairing of preferred day and time slots"
+        },
+        "supportRoles": {
+          "type": "array",
+          "description": "Roles interested in assisting"
+        },
+        "interestedAreas": {
+          "type": "array",
+          "description": "Areas of work interested in supporting"
+        },
+        "hasContactInfo": {
+          "type": "boolean",
+          "description": "Flag indicating if contact info document exists"
+        },
+        "acknowledgedDisclaimer": {
+          "type": "boolean",
+          "description": "Acknowledgment of draft status disclaimer"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "surveyVersion",
+        "isNUPersonnel",
+        "primaryDepartmentId",
+        "primaryDepartmentName",
+        "agreementLevel",
+        "intent",
+        "acknowledgedDisclaimer"
+      ]
+    },
+    "SurveyContact": {
+      "title": "SurveyContact",
+      "description": "Contact info separated from anonymous survey responses to protect personal data",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the applicant"
+        },
+        "surveyVersion": {
+          "type": "string",
+          "description": "Survey version"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Name and surname of applicant"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address"
+        },
+        "primaryDepartmentName": {
+          "type": "string",
+          "description": "Primary department name"
+        },
+        "intent": {
+          "type": "string",
+          "description": "Intent type: join_member or receive_news"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "surveyVersion", "fullName", "intent"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Administrator allowlist record",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Email address of the administrator"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role level"
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/survey_responses/{responseId}": {
+      "schema": "SurveyResponse",
+      "description": "Collection of all survey responses"
+    },
+    "/survey_contacts/{contactId}": {
+      "schema": "SurveyContact",
+      "description": "Collection of contact details isolated from survey answers"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin allowlist records"
+    }
+  }
+}
