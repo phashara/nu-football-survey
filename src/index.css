@@ -1,1 +1,125 @@
 @import "tailwindcss";
+
+/* Official TH Sarabun New Web Fonts (National Standard Thai Font) */
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New'), local('THSarabunNew'), local('TH Sarabun PSK'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Bold'), local('THSarabunNew-Bold'), local('TH Sarabun PSK Bold'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New Italic'), local('THSarabunNew-Italic'), local('TH Sarabun PSK Italic'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-Italic.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TH Sarabun New';
+  src: local('TH Sarabun New BoldItalic'), local('THSarabunNew-BoldItalic'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-BoldItalic.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/lazywasabi/thai-web-fonts@master/fonts/THSarabunNew/THSarabunNew-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@layer base {
+  body {
+    font-family: 'TH Sarabun New', 'THSarabunNew', 'TH Sarabun PSK', 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 19px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #F8FAFC;
+    color: #0F172A;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'TH Sarabun New', 'THSarabunNew', 'TH Sarabun PSK', 'Sarabun', sans-serif;
+    font-weight: 700;
+  }
+
+  p, span, div, a, li, label, strong, b, td, th {
+    font-family: 'TH Sarabun New', 'THSarabunNew', 'TH Sarabun PSK', 'Sarabun', sans-serif;
+  }
+
+  button, input, textarea, select {
+    font-family: 'TH Sarabun New', 'THSarabunNew', 'TH Sarabun PSK', 'Sarabun', sans-serif;
+  }
+}
+
+/* Manchester United & Premier League Club Branding */
+:root {
+  --manutd-red: #DA291C;
+  --manutd-red-dark: #A50F15;
+  --premier-purple: #0F172A;
+  --stadium-gold: #D97706;
+}
+
+/* High-Contrast Matchday Card */
+.sports-card-clean {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.sports-card-clean:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Manchester United Glowing Red Button */
+.btn-manutd-red {
+  background: linear-gradient(135deg, #EF4444 0%, #DA291C 60%, #B91C1C 100%);
+  color: #FFFFFF;
+  font-family: 'TH Sarabun New', 'THSarabunNew', 'TH Sarabun PSK', 'Sarabun', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 4px 14px rgba(218, 41, 28, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-manutd-red:hover {
+  background: linear-gradient(135deg, #F87171 0%, #EF4444 60%, #DC2626 100%);
+  box-shadow: 0 6px 20px rgba(218, 41, 28, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-manutd-red:active {
+  transform: translateY(0);
+}
+
+/* Red Accent Left Border */
+.manutd-accent-bar {
+  border-left: 4px solid #DA291C;
+}
+
+/* Live Dot Animation */
+@keyframes pulseLive {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.9); }
+}
+
+.live-dot {
+  animation: pulseLive 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

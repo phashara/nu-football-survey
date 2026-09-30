@@ -164,3 +164,34 @@ export function exportSurveyContactsCSV(contacts: SurveyContactFirestoreDoc[], f
   const dateStr = `${now.getFullYear() + 543}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   triggerCsvDownload(csvContent, `${fileNamePrefix}_${dateStr}.csv`);
 }
+
+/**
+ * 3. Export Executive Summary Briefing CSV
+ */
+export function exportExecutiveBriefCSV(responses: SurveyResponseFirestoreDoc[], fileNamePrefix: string = 'nu_football_executive_brief') {
+  const total = responses.length;
+  const agreeCount = responses.filter(r => r.agreementLevel === 'strongly_agree' || r.agreementLevel === 'agree').length;
+  const agreePercent = total > 0 ? ((agreeCount / total) * 100).toFixed(1) : '0';
+  const memberCount = responses.filter(r => r.intent === 'join_member').length;
+  const newsCount = responses.filter(r => r.intent === 'receive_news').length;
+  const committeeCount = responses.filter(r => (r.supportRoles || []).includes('committee')).length;
+  const supportCount = responses.filter(r => (r.supportRoles || []).includes('occasional_support')).length;
+
+  const lines = [
+    ["รายงานสรุปผลการสำรวจความคิดเห็น", "โครงการจัดตั้งชมรมฟุตบอลและกีฬาฟุตบอลบุคลากรมหาวิทยาลัยนเรศวร"],
+    ["วันที่สร้างรายงาน", new Date().toLocaleDateString('th-TH')],
+    [""],
+    ["ตัวชี้วัดสำคัญ (Key Metrics)", "จำนวน", "สัดส่วน (%)"],
+    ["จำนวนผู้ตอบแบบสำรวจทั้งหมด", String(total), "100%"],
+    ["ผู้เห็นชอบในการจัดตั้งชมรม (เห็นด้วยอย่างยิ่ง + เห็นด้วย)", String(agreeCount), `${agreePercent}%`],
+    ["ผู้ประสงค์สมัครเป็นสมาชิกชมรม", String(memberCount), total > 0 ? `${((memberCount / total) * 100).toFixed(1)}%` : '0%'],
+    ["ผู้ประสงค์รับข้อมูลข่าวสารเพื่อร่วมกิจกรรม", String(newsCount), total > 0 ? `${((newsCount / total) * 100).toFixed(1)}%` : '0%'],
+    ["ผู้พร้อมร่วมเป็นคณะกรรมการบริหารชมรม", String(committeeCount), total > 0 ? `${((committeeCount / total) * 100).toFixed(1)}%` : '0%'],
+    ["ผู้พร้อมสนับสนุนกิจกรรมเป็นครั้งคราว", String(supportCount), total > 0 ? `${((supportCount / total) * 100).toFixed(1)}%` : '0%'],
+  ];
+
+  const csvContent = lines.map(row => row.map(escapeCSV).join(',')).join('\r\n');
+  const now = new Date();
+  const dateStr = `${now.getFullYear() + 543}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  triggerCsvDownload(csvContent, `${fileNamePrefix}_${dateStr}.csv`);
+}

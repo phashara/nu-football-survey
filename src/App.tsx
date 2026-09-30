@@ -16,7 +16,18 @@ import {
   Heart,
   ChevronRight,
   Lock,
-  LockOpen
+  Trophy,
+  Flame,
+  Activity,
+  Layers,
+  Check,
+  Building,
+  Target,
+  ExternalLink,
+  Shield,
+  HelpCircle,
+  Menu,
+  X
 } from 'lucide-react';
 import { 
   SCHEDULE, 
@@ -37,6 +48,7 @@ import {
   ensureAnonymousUser, 
   testConnection 
 } from './services/firebase';
+import { NufcCrest } from './components/NufcCrest';
 import { FullDraftModal } from './components/FullDraftModal';
 import { Step1Respondent } from './components/Step1Respondent';
 import { Step2Feedback } from './components/Step2Feedback';
@@ -61,14 +73,11 @@ export default function App() {
 
   // Time and status
   const [currentTimeStatus, setCurrentTimeStatus] = useState<SurveyStatus>('PREPARING');
-  const [allowTestSubmission, setAllowTestSubmission] = useState(true); // Allow preview testing mode
 
   useEffect(() => {
-    // Check real-time schedule status
     const status = getSurveyStatus();
     setCurrentTimeStatus(status);
 
-    // Initial Firebase connection check
     if (isFirebaseConfigured) {
       testConnection().catch(() => {});
       ensureAnonymousUser().catch(() => {});
@@ -77,7 +86,6 @@ export default function App() {
 
   const updateFormData = (patch: Partial<SurveyFormData>) => {
     setFormData(prev => ({ ...prev, ...patch }));
-    // Clear relevant errors
     const keys = Object.keys(patch);
     setErrors(prev => {
       const next = { ...prev };
@@ -86,8 +94,6 @@ export default function App() {
     });
   };
 
-  // Determine active step sequence depending on intent
-  // If intent is 'feedback_only', skip step 4 (Activities) and step 6 (Contact)
   const isFeedbackOnly = formData.intent === 'feedback_only';
 
   const validateCurrentStep = (): boolean => {
@@ -98,50 +104,45 @@ export default function App() {
         errs.isNUPersonnel = "โปรดยืนยันว่าเป็นบุคลากรที่ปฏิบัติงานอยู่ในมหาวิทยาลัยนเรศวร";
       }
       if (!formData.primaryDepartmentId) {
-        errs.primaryDepartmentId = "โปรดเลือกหน่วยงานต้นสังกัดหลัก";
+        errs.primaryDepartmentId = "โปรดเลือกคณะ/วิทยาลัย/หน่วยงานต้นสังกัดหลัก";
       }
-      if (formData.primaryDepartmentId === 'custom_not_in_list' && !formData.customDepartmentName?.trim()) {
-        errs.customDepartmentName = "โปรดระบุชื่อหน่วยงานของท่าน";
+      if (formData.primaryDepartmentId === 'other' && !formData.customDepartmentName?.trim()) {
+        errs.customDepartmentName = "โปรดระบุชื่อหน่วยงานต้นสังกัด";
       }
     } else if (surveyStep === 2) {
       if (!formData.agreementLevel) {
-        errs.agreementLevel = "โปรดเลือกระดับความเห็นชอบต่อการจัดตั้งชมรม";
+        errs.agreementLevel = "โปรดระบุระดับความคิดเห็นต่อร่างโครงการ";
+      }
+      if (!formData.expectedBenefits || formData.expectedBenefits.length === 0) {
+        errs.expectedBenefits = "โปรดเลือกประโยชน์ที่คาดว่าจะได้รับอย่างน้อย 1 ข้อ";
       }
     } else if (surveyStep === 3) {
       if (!formData.intent) {
-        errs.intent = "โปรดเลือกความจำนงของท่าน";
+        errs.intent = "โปรดระบุความจำนงในการมีส่วนร่วมกับโครงการ";
       }
-    } else if (surveyStep === 4) {
-      if (!isFeedbackOnly) {
-        if (!formData.activityTypes || formData.activityTypes.length === 0) {
-          errs.activityTypes = "โปรดเลือกรูปแบบกิจกรรมที่สนใจอย่างน้อย 1 รายการ";
-        }
-        if (!formData.experienceLevel) {
-          errs.experienceLevel = "โปรดเลือกระดับประสบการณ์";
-        }
-        if (!formData.frequency) {
-          errs.frequency = "โปรดเลือกความถี่ที่คาดว่าจะสะดวกเข้าร่วม";
-        }
-        if (!formData.preferredTimeSlots || formData.preferredTimeSlots.length === 0) {
-          errs.preferredTimeSlots = "โปรดเลือกวันและช่วงเวลาที่สะดวกอย่างน้อย 1 ช่วงเวลา";
-        }
+    } else if (surveyStep === 4 && !isFeedbackOnly) {
+      if (!formData.activityTypes || formData.activityTypes.length === 0) {
+        errs.activityTypes = "โปรดเลือกรูปแบบกิจกรรมที่สนใจอย่างน้อย 1 รูปแบบ";
       }
-    } else if (surveyStep === 5) {
-      if (!isFeedbackOnly) {
-        if (!formData.supportRoles || formData.supportRoles.length === 0) {
-          errs.supportRoles = "โปรดเลือกระดับความสนใจในการมีส่วนร่วมหรือเลือก 'สนใจเข้าร่วมกิจกรรมอย่างเดียว'";
-        }
+      if (!formData.experienceLevel) {
+        errs.experienceLevel = "โปรดระบุระดับประสบการณ์หรือทักษะกีฬาฟุตบอล";
       }
-    } else if (surveyStep === 6) {
-      if (!isFeedbackOnly) {
-        if (!formData.fullName.trim()) {
-          errs.fullName = "โปรดกรอกชื่อ – นามสกุล";
-        }
-        const hasPhone = Boolean(formData.phone?.trim());
-        const hasEmail = Boolean(formData.email?.trim());
-        if (!hasPhone && !hasEmail) {
-          errs.contactChannel = "โปรดระบุหมายเลขโทรศัพท์ หรืออีเมล อย่างน้อย 1 ช่องทางเพื่อการติดต่อ";
-        }
+      if (!formData.frequency) {
+        errs.frequency = "โปรดระบุความถี่ที่คาดว่าจะเข้าร่วมกิจกรรม";
+      }
+      if (!formData.preferredTimeSlots || formData.preferredTimeSlots.length === 0) {
+        errs.preferredTimeSlots = "โปรดเลือกช่วงวันและเวลาที่สะดวกอย่างน้อย 1 ช่วง";
+      }
+    } else if (surveyStep === 5 && !isFeedbackOnly) {
+      if (!formData.supportRoles || formData.supportRoles.length === 0) {
+        errs.supportRoles = "โปรดระบุความสนใจร่วมดำเนินงานหรือสนับสนุนกิจกรรม";
+      }
+    } else if (surveyStep === 6 && !isFeedbackOnly) {
+      if (!formData.fullName.trim()) {
+        errs.fullName = "โปรดระบุชื่อ-นามสกุลสำหรับบันทึกความจำนง";
+      }
+      if (!formData.phone?.trim() && !formData.email?.trim()) {
+        errs.phone = "โปรดระบุหมายเลขโทรศัพท์หรืออีเมลอย่างน้อย 1 ช่องทางสำหรับการติดต่อ";
       }
     }
 
@@ -150,58 +151,43 @@ export default function App() {
   };
 
   const handleNextStep = () => {
-    if (!validateCurrentStep()) return;
-
-    if (surveyStep === 3 && isFeedbackOnly) {
-      // Skip Part 4 and Part 6 -> Go directly to Review (Step 7)
-      setSurveyStep(7);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!validateCurrentStep()) {
+      window.scrollTo({ top: 120, behavior: 'smooth' });
       return;
     }
 
-    if (surveyStep < 7) {
-      setSurveyStep(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (surveyStep === 3 && isFeedbackOnly) {
+      setSurveyStep(7);
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+      return;
     }
+
+    setSurveyStep(prev => Math.min(prev + 1, 7));
+    window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
   const handlePrevStep = () => {
     if (surveyStep === 7 && isFeedbackOnly) {
-      // If we jumped from Step 3 to Step 7, go back to Step 3
       setSurveyStep(3);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 120, behavior: 'smooth' });
       return;
     }
-    if (surveyStep > 1) {
-      setSurveyStep(prev => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    setSurveyStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
-    if (!formData.acknowledgedDisclaimer) {
-      setSubmitError("โปรดกดยืนยันการรับทราบสถานะร่างโครงการก่อนส่งแบบสำรวจ");
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      if (isFirebaseConfigured) {
-        const result = await submitSurvey(formData);
-        setSubmitDocId(result.docId);
-        setSubmitSuccess(true);
-      } else {
-        // Fallback for trial demo mode when Firebase credentials are not yet injected
-        await new Promise(r => setTimeout(r, 600));
-        setSubmitDocId(`trial_preview_${Date.now()}`);
-        setSubmitSuccess(true);
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const res = await submitSurvey(formData);
+      setSubmitDocId(res.docId);
+      setSubmitSuccess(true);
+      window.scrollTo({ top: 100, behavior: 'smooth' });
     } catch (err: any) {
-      console.error("Submission error:", err);
-      setSubmitError(err.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล โปรดลองใหม่อีกครั้ง");
+      console.error("Submission failed:", err);
+      setSubmitError(err?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่อีกครั้ง");
     } finally {
       setIsSubmitting(false);
     }
@@ -211,221 +197,351 @@ export default function App() {
     setFormData(INITIAL_FORM_DATA);
     setSurveyStep(1);
     setSubmitSuccess(false);
-    setCurrentView('home');
+    setSubmitDocId('');
     setSubmitError(null);
+    setCurrentView('home');
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-['Sarabun',sans-serif]">
-      {/* Official Top Notice Bar */}
-      <aside aria-label="แถบประกาศสถานะโครงการ" className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
-            <span>มหาวิทยาลัยนเรศวร • ระบบรับฟังความคิดเห็นบุคลากรเพื่อสวัสดิการและการกีฬา</span>
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 ">
+      {/* 1. MATCHDAY LIVE TICKER BAR */}
+      <div className="bg-[#0A0D15] text-white text-xs py-2 px-4 border-b border-red-900/40">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-1.5 bg-red-600/30 text-red-400 border border-red-500/50 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px]">
+              <span className="w-2 h-2 rounded-full bg-red-500 live-dot"></span>
+              LIVE
+            </span>
+            <span className="text-slate-200 text-xs font-medium">
+              แบบสำรวจความคิดเห็นต่อร่างโครงการจัดตั้งชมรมฟุตบอลบุคลากรมหาวิทยาลัยนเรศวร
+            </span>
           </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-orange-400" />
-              กำหนดการรับฟัง: 8 – 31 ต.ค. 2569 (23.59 น.)
+
+          <div className="flex items-center gap-3 text-[11px] text-slate-300">
+            <span className="text-amber-400 font-semibold flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-amber-400" />
+              กำหนดการ: 8 – 31 ต.ค. 2569 (23.59 น.)
+            </span>
+            <span className="hidden md:inline text-slate-600">•</span>
+            <span className="hidden md:inline text-emerald-400 font-bold">
+              สถานะ: เปิดรับฟังความคิดเห็น
             </span>
           </div>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Navigation Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          {/* Logo / Crest Badge (Compliant with "ห้ามใช้ตรามหาวิทยาลัยหากยังไม่มีไฟล์ตราที่ถูกต้อง") */}
+      {/* 2. OFFICIAL MANCHESTER UNITED / PREMIER LEAGUE STYLE CLUB NAVIGATION HEADER */}
+      <header className="sticky top-0 z-40 bg-[#0F172A] text-white border-b-4 border-[#DA291C] shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-3">
+          {/* Official Football Club Crest & Brand */}
           <div 
-            onClick={() => { setCurrentView('home'); }} 
-            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => setCurrentView('home')} 
+            className="flex items-center gap-3 cursor-pointer group shrink-0"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-orange-700 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
-              <div className="relative flex items-center justify-center">
-                <span className="text-xl sm:text-2xl font-black text-orange-400">NU</span>
-              </div>
-            </div>
+            <NufcCrest size="md" className="group-hover:scale-105 transition-transform" />
             <div>
-              <div className="text-[11px] sm:text-xs font-bold text-orange-700 uppercase tracking-wider">
-                โครงการจัดตั้งชมรมฟุตบอลบุคลากร
+              <div className="text-[11px] font-extrabold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span>NARESUAN UNIVERSITY FOOTBALL CLUB</span>
+                <span className="text-amber-300">★ ★</span>
+                <span className="text-slate-400 hidden sm:inline">• EST. 2569</span>
               </div>
-              <div className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">
-                มหาวิทยาลัยนเรศวร
+              <div className="text-base sm:text-lg font-black text-white tracking-tight group-hover:text-red-400 transition-colors leading-tight">
+                โครงการจัดตั้งชมรมฟุตบอลบุคลากร
               </div>
             </div>
           </div>
 
-          {/* Nav Actions */}
+          {/* Navigation Links - ALWAYS VISIBLE ON ALL SCREENS */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setIsDraftModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-orange-600 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              <BookOpen className="w-4 h-4 text-orange-600" />
-              อ่านร่างโครงการฉบับเต็ม
-            </button>
-
-            {currentView === 'admin' ? (
+            <nav className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => setCurrentView('home')}
-                className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider transition-all cursor-pointer rounded-lg ${
+                  currentView === 'home' 
+                    ? 'bg-white/15 text-amber-400 border border-amber-400/40' 
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}
               >
-                หน้าหลัก
+                ⚽ หน้าหลัก
               </button>
-            ) : (
+
+              <button
+                onClick={() => setIsDraftModalOpen(true)}
+                className="hidden md:flex px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 hover:text-amber-400 hover:bg-white/10 transition-all cursor-pointer rounded-lg items-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                ร่างโครงการ
+              </button>
+
+              {/* CRITICAL: ADMIN MENU BUTTON - PROMINENT & ALWAYS VISIBLE */}
               <button
                 onClick={() => setCurrentView('admin')}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-2 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer"
-                title="สำหรับคณะกรรมการและผู้ดูแลระบบ"
+                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer rounded-lg flex items-center gap-1.5 shadow-sm ${
+                  currentView === 'admin' 
+                    ? 'bg-red-600 text-white shadow-md shadow-red-900/40 ring-2 ring-red-400' 
+                    : 'bg-slate-800 text-amber-300 hover:bg-slate-700 hover:text-amber-200 border border-amber-500/40'
+                }`}
+                title="เข้าสู่ระบบผู้ดูแลระบบ (Admin Dashboard)"
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">ผู้ดูแลระบบ</span>
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>ผู้ดูแลระบบ</span>
+                <span className="hidden sm:inline text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded ml-0.5">ADMIN</span>
               </button>
-            )}
+            </nav>
 
-            {currentView !== 'survey' && (
+            {/* Standout Take Survey Action Button */}
+            {currentView !== 'survey' ? (
               <button
                 onClick={() => {
                   setCurrentView('survey');
                   setSurveyStep(1);
                   setSubmitSuccess(false);
                 }}
-                className="px-4 py-2 sm:py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-98"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 btn-manutd-red rounded-xl flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm font-black uppercase tracking-wider shrink-0"
               >
-                <span>ตอบแบบสำรวจ</span>
+                <span>ทำแบบสำรวจ</span>
                 <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setCurrentView('home')}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase rounded-xl border border-slate-700 transition-colors cursor-pointer"
+              >
+                กลับหน้าหลัก
               </button>
             )}
           </div>
         </div>
+
+        {/* Mobile Quick Action Sub-bar to ensure no user misses any menu */}
+        <div className="md:hidden bg-[#0A0D15] border-t border-slate-800 px-4 py-1.5 flex items-center justify-around text-xs">
+          <button 
+            onClick={() => setCurrentView('home')}
+            className={`py-1 px-2.5 rounded font-bold transition-colors ${currentView === 'home' ? 'text-amber-400 font-extrabold' : 'text-slate-400'}`}
+          >
+            ⚽ หน้าหลัก
+          </button>
+          <button 
+            onClick={() => { setCurrentView('survey'); setSurveyStep(1); setSubmitSuccess(false); }}
+            className={`py-1 px-2.5 rounded font-bold transition-colors ${currentView === 'survey' ? 'text-red-400 font-extrabold' : 'text-slate-400'}`}
+          >
+            📋 แบบสำรวจ
+          </button>
+          <button 
+            onClick={() => setIsDraftModalOpen(true)}
+            className="py-1 px-2.5 rounded font-bold text-slate-400 hover:text-amber-400 transition-colors"
+          >
+            📜 ร่างโครงการ
+          </button>
+          <button 
+            onClick={() => setCurrentView('admin')}
+            className={`py-1 px-2.5 rounded font-extrabold transition-colors flex items-center gap-1 ${currentView === 'admin' ? 'text-red-400 bg-red-950/60' : 'text-amber-400'}`}
+          >
+            <Lock className="w-3 h-3 text-amber-400" />
+            ผู้ดูแลระบบ
+          </button>
+        </div>
       </header>
 
-      {/* Main Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Main Body Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* VIEW 1: HOME PAGE */}
         {currentView === 'home' && (
-          <div className="space-y-8 animate-fadeIn">
-            {/* Status Disclaimer Banner (MANDATORY EXACT TEXT) */}
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex items-start gap-3.5">
-              <ShieldAlert className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                  สถานะโครงการและการสำรวจ
+          <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+            {/* Official Mandatory Status Disclaimer Banner - HIGH CONTRAST & EASY TO READ */}
+            <div className="bg-amber-50/90 border-l-4 border-amber-600 p-4 sm:p-5 rounded-2xl shadow-xs border border-amber-200">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2 bg-amber-500/20 text-amber-700 rounded-xl shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5 text-amber-700" />
                 </div>
-                <div className="text-sm sm:text-base font-semibold text-amber-950 leading-relaxed">
-                  “{STATUS_DISCLAIMER_TEXT}”
+                <div className="space-y-1">
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                    ประกาศสถานะโครงการอย่างเป็นทางการ (OFFICIAL NOTICE)
+                  </div>
+                  <div className="text-sm sm:text-base font-semibold text-slate-900 leading-relaxed">
+                    “{STATUS_DISCLAIMER_TEXT}”
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Hero Section */}
-            <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-12 relative overflow-hidden shadow-xl border border-slate-800">
-              <div className="relative z-10 max-w-3xl space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-600/30 border border-orange-500/40 text-orange-300 text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-                  <span>รับฟังความคิดเห็นบุคลากร มหาวิทยาลัยนเรศวร</span>
+            {/* Hero Section: Premier League & Manchester United Matchday Presentation */}
+            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#1E1B4B] text-white shadow-xl p-6 sm:p-10 border border-slate-700">
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                {/* Left Column: Big Match Title & Brief */}
+                <div className="lg:col-span-7 space-y-5 text-left">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/30 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
+                    <Flame className="w-3.5 h-3.5 text-red-400" />
+                    <span>PUBLIC CONSULTATION & SQUAD DEMAND SURVEY 2026</span>
+                  </div>
+
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+                    แบบสำรวจความคิดเห็น<br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-300 to-amber-300">
+                      โครงการจัดตั้งชมรมฟุตบอลบุคลากร
+                    </span><br />
+                    มหาวิทยาลัยนเรศวร
+                  </h1>
+
+                  <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal">
+                    ขอเชิญบุคลากรมหาวิทยาลัยนเรศวรทุกท่านร่วมแสดงความคิดเห็น สำรวจความต้องการกิจกรรมกีฬาฟุตบอลเพื่อสุขภาพ และร่วมแสดงความจำนงสมัครสมาชิก เพื่อเป็นกลไกส่งเสริมสุขภาพ สวัสดิการ และสร้างความสัมพันธ์ระหว่างหน่วยงาน
+                  </p>
+
+                  {/* Primary CTA Buttons */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+                    <button
+                      onClick={() => {
+                        setCurrentView('survey');
+                        setSurveyStep(1);
+                        setSubmitSuccess(false);
+                      }}
+                      className="px-7 py-3.5 btn-manutd-red rounded-xl flex items-center justify-center gap-2.5 text-sm sm:text-base font-black uppercase tracking-wider cursor-pointer shadow-lg"
+                    >
+                      <span>เริ่มตอบแบบสำรวจ (TAKE SURVEY)</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={() => setIsDraftModalOpen(true)}
+                      className="px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm sm:text-base border border-white/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4 text-amber-400" />
+                      <span>อ่านร่างโครงการฉบับเต็ม</span>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('admin')}
+                      className="px-5 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-amber-300 hover:text-amber-200 font-bold text-sm sm:text-base border border-amber-500/40 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Lock className="w-4 h-4 text-amber-400" />
+                      <span>ผู้ดูแลระบบ</span>
+                    </button>
+                  </div>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-snug">
-                  แบบสำรวจความคิดเห็นโครงการจัดตั้งชมรมฟุตบอลบุคลากรมหาวิทยาลัยนเรศวร
-                </h1>
+                {/* Right Column: Premier League Style Fixture & Milestone Card */}
+                <div className="lg:col-span-5">
+                  <div className="bg-white text-slate-900 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 border border-slate-200">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs">
+                      <span className="text-red-600 font-black uppercase tracking-widest flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4 text-amber-500" />
+                        MATCHWEEK 2569 • ข้อมูลโครงการ
+                      </span>
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold text-[11px]">
+                        🟢 เปิดรับฟังความคิดเห็น
+                      </span>
+                    </div>
 
-                <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-light">
-                  ขอเชิญบุคลากรมหาวิทยาลัยนเรศวรทุกท่านร่วมแสดงความคิดเห็น สำรวจความต้องการกิจกรรมฟุตบอลเพื่อสุขภาพ และร่วมแสดงความจำนงสมัครสมาชิก เพื่อเป็นกลไกส่งเสริมสุขภาพ สวัสดิการ และสร้างความสัมพันธ์ระหว่างหน่วยงาน
-                </p>
+                    {/* Team VS Team Matchup Graphic */}
+                    <div className="grid grid-cols-7 items-center gap-2 py-2 text-center">
+                      <div className="col-span-3 flex flex-col items-center">
+                        <div className="w-13 h-13 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-2xl shadow-inner mb-2">
+                          🏛️
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 uppercase leading-tight">
+                          บุคลากร ม.นเรศวร
+                        </span>
+                        <span className="text-[10px] text-slate-500">สายวิชาการ & สายสนับสนุน</span>
+                      </div>
 
-                {/* Timeline Badges */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10 text-xs">
-                    <span className="text-slate-400 block text-[11px]">เริ่มเตรียมการ</span>
-                    <strong className="text-white">1 ตุลาคม 2569</strong>
+                      <div className="col-span-1 flex flex-col items-center justify-center">
+                        <span className="text-base font-black text-red-600">VS</span>
+                        <span className="text-[9px] text-slate-400 uppercase tracking-tighter">CHARTER</span>
+                      </div>
+
+                      <div className="col-span-3 flex flex-col items-center">
+                        <div className="w-13 h-13 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center shadow-inner mb-2 p-1">
+                          <NufcCrest size="sm" />
+                        </div>
+                        <span className="text-xs font-bold text-red-600 uppercase leading-tight">
+                          ชมรมฟุตบอลทางการ
+                        </span>
+                        <span className="text-[10px] text-slate-500">เป้าหมายก่อตั้ง 2569</span>
+                      </div>
+                    </div>
+
+                    {/* Timeline & Key Stats */}
+                    <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 text-xs">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-slate-500 block text-[10px]">ระยะเวลารับฟังความคิดเห็น</span>
+                        <strong className="text-slate-900 text-xs sm:text-sm font-bold">8 – 31 ต.ค. 2569</strong>
+                      </div>
+                      <div className="p-3 bg-red-50 rounded-xl border border-red-200">
+                        <span className="text-red-700 block text-[10px]">เป้าหมายความจำนง</span>
+                        <strong className="text-red-700 text-xs sm:text-sm font-bold">50+ รายชื่อสมาชิก</strong>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-xs p-3 rounded-xl border border-white/10 text-xs">
-                    <span className="text-slate-400 block text-[11px]">เปิดรับความคิดเห็น</span>
-                    <strong className="text-white">8 ตุลาคม 2569</strong>
-                  </div>
-                  <div className="bg-orange-500/20 backdrop-blur-xs p-3 rounded-xl border border-orange-500/30 text-xs">
-                    <span className="text-orange-300 block text-[11px]">ปิดรับความคิดเห็น</span>
-                    <strong className="text-orange-200">31 ต.ค. 2569 เวลา 23.59 น.</strong>
-                  </div>
-                </div>
-
-                {/* Main Action Buttons */}
-                <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
-                  <button
-                    onClick={() => {
-                      setCurrentView('survey');
-                      setSurveyStep(1);
-                      setSubmitSuccess(false);
-                    }}
-                    className="px-7 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-950/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 cursor-pointer"
-                  >
-                    <span>เริ่มตอบแบบสำรวจ</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-
-                  <button
-                    onClick={() => setIsDraftModalOpen(true)}
-                    className="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm sm:text-base border border-white/20 flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-4 h-4 text-orange-400" />
-                    <span>อ่านร่างโครงการฉบับเต็ม</span>
-                  </button>
                 </div>
               </div>
-
-              {/* Decorative Subtle Accent */}
-              <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none"></div>
             </section>
 
-            {/* 4 Core Objectives Grid */}
+            {/* 4 Core Objectives: Crisp High-Contrast Cards (EASY TO READ) */}
             <section className="space-y-4">
-              <div className="border-b border-slate-200 pb-2">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-                  วัตถุประสงค์ของการรับฟังความคิดเห็นและสำรวจความต้องการ
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  ข้อมูลที่ได้จะถูกนำไปใช้วิเคราะห์เพื่อปรับปรุงร่างโครงการให้สอดคล้องกับบุคลากรทุกกลุ่ม
-                </p>
+              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black uppercase text-slate-900 tracking-tight flex items-center gap-2">
+                    <Target className="w-6 h-6 text-red-600" />
+                    4 วัตถุประสงค์หลักของการเปิดรับฟังความคิดเห็น
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                    เพื่อความโปร่งใส มีส่วนร่วม และขับเคลื่อนชมรมอย่างเป็นรูปธรรมตามระเบียบมหาวิทยาลัย
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-orange-300 transition-colors space-y-2">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm">
-                    1
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-red-500 hover:shadow-md transition-all space-y-2 relative overflow-hidden group">
+                  <div className="h-1 bg-red-600 absolute top-0 left-0 right-0"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-black text-red-600">01</span>
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      CHARTER
+                    </span>
                   </div>
-                  <h3 className="font-bold text-sm text-slate-900">รับฟังความคิดเห็นต่อร่าง</h3>
+                  <h3 className="font-bold text-base text-slate-900">รับฟังความคิดเห็นต่อร่าง</h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    รวบรวมข้อคิดเห็น ข้อกังวล และข้อเสนอแนะต่อโครงสร้างกิจกรรมและการบริหารจัดการ
+                    รวบรวมข้อคิดเห็น ข้อกังวล และข้อเสนอแนะต่อโครงสร้างกิจกรรมและการบริหารจัดการชมรม
                   </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-orange-300 transition-colors space-y-2">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm">
-                    2
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-red-500 hover:shadow-md transition-all space-y-2 relative overflow-hidden group">
+                  <div className="h-1 bg-red-600 absolute top-0 left-0 right-0"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-black text-red-600">02</span>
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      FORMATS
+                    </span>
                   </div>
-                  <h3 className="font-bold text-sm text-slate-900">สำรวจความต้องการกิจกรรม</h3>
+                  <h3 className="font-bold text-base text-slate-900">สำรวจความต้องการกิจกรรม</h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     สำรวจรูปแบบการเล่น ประสบการณ์ และช่วงเวลาที่สะดวก เพื่อจัดสรรพื้นที่และเวลาให้เกิดประโยชน์สูงสุด
                   </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-orange-300 transition-colors space-y-2">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm">
-                    3
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-red-500 hover:shadow-md transition-all space-y-2 relative overflow-hidden group">
+                  <div className="h-1 bg-red-600 absolute top-0 left-0 right-0"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-black text-red-600">03</span>
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      ROSTER
+                    </span>
                   </div>
-                  <h3 className="font-bold text-sm text-slate-900">รับแสดงความจำนงสมาชิก</h3>
+                  <h3 className="font-bold text-base text-slate-900">รับแสดงความจำนงสมาชิก</h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     เปิดรับการแจ้งความประสงค์สมัครสมาชิกไว้ล่วงหน้าเพื่อประกอบการประเมินความต้องการจริง
                   </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-orange-300 transition-colors space-y-2">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm">
-                    4
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-red-500 hover:shadow-md transition-all space-y-2 relative overflow-hidden group">
+                  <div className="h-1 bg-red-600 absolute top-0 left-0 right-0"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-black text-red-600">04</span>
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      COMMITTEE
+                    </span>
                   </div>
-                  <h3 className="font-bold text-sm text-slate-900">รับแจ้งความสนใจร่วมงาน</h3>
+                  <h3 className="font-bold text-base text-slate-900">รับแจ้งความสนใจร่วมงาน</h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     เปิดโอกาสให้ผู้สนใจร่วมเป็นคณะกรรมการหรือช่วยงานเฉพาะกิจเพื่อเตรียมความพร้อมด้านผู้ดำเนินงาน
                   </p>
@@ -433,39 +549,56 @@ export default function App() {
               </div>
             </section>
 
-            {/* Initial Proposed Activity Formats */}
-            <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-                รูปแบบกิจกรรมเบื้องต้น (ตามร่างโครงการ)
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm text-slate-700">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Heart className="w-4 h-4 text-orange-600" />
-                    ฟุตบอลเพื่อสุขภาพ & ทักษะ
-                  </h3>
+            {/* Proposed Activity Formats - Clean & High Contrast */}
+            <section className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-black uppercase text-slate-900 tracking-tight">
+                    รูปแบบกิจกรรมกีฬาฟุตบอลตามร่างโครงการ (MATCH & TRAINING FORMATS)
+                  </h2>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    ออกแบบยืดหยุ่นเพื่อรองรับบุคลากรทุกกลุ่มวัย ทั้งเพื่อการออกกำลังกายและเชื่อมความสัมพันธ์
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs sm:text-sm">
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 hover:border-red-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-black text-lg border border-red-200">
+                      11s
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500">สนาม 1 ม.นเรศวร</span>
+                  </div>
+                  <h3 className="font-bold text-base text-slate-900">ฟุตบอล 11 คน (สนามใหญ่)</h3>
                   <p className="text-slate-600 leading-relaxed">
-                    เน้นการออกกำลังกายสม่ำเสมอ ฝึกทักษะการรับ–ส่งบอล การยิงประตู และการควบคุมลูก ไม่จำกัดทักษะเดิม
+                    สำหรับการซ้อมประจำสัปดาห์และการแข่งขันกระชับมิตรระหว่างหน่วยงาน ณ สนามฟุตบอล 1 มหาวิทยาลัยนเรศวร
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-orange-600" />
-                    ฟุตบอลสัมพันธ์ & สนามเล็ก
-                  </h3>
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 hover:border-amber-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-lg border border-amber-200">
+                      7s
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500">MINI PITCH</span>
+                  </div>
+                  <h3 className="font-bold text-base text-slate-900">ฟุตบอล 7 คน (สนามเล็ก)</h3>
                   <p className="text-slate-600 leading-relaxed">
-                    หมุนเวียนผู้เล่น เล่นแบบสนามเล็กหรือยืดหยุ่นตามจำนวนผู้เข้าร่วม เน้นความสนุกสนานและสร้างเครือข่าย
+                    รูปแบบยืดหยุ่น เหมาะสำหรับบุคลากรวัยทำงาน ลดความเสี่ยงจากการบาดเจ็บและสร้างมิตรภาพ
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-orange-600" />
-                    ความปลอดภัย & กติกาสุภาพ
-                  </h3>
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-lg border border-emerald-200">
+                      5v5
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500">GYMNASIUM</span>
+                  </div>
+                  <h3 className="font-bold text-base text-slate-900">ฟุตซอล 5-6 คน (ในร่ม)</h3>
                   <p className="text-slate-600 leading-relaxed">
-                    อบอุ่นร่างกายอย่างเหมาะสม หลีกเลี่ยงการปะทะรุนแรง เคารพซึ่งกันและกัน และมีผู้ประสานงานประจำกิจกรรม
+                    ออกกำลังกายหลังเลิกงานในร่ม ณ ยิมเนเซียม ไม่กระทบจากสภาพอากาศ เล่นง่าย สนุกสนานและปลอดภัย
                   </p>
                 </div>
               </div>
@@ -485,40 +618,41 @@ export default function App() {
                 onOpenDraft={() => setIsDraftModalOpen(true)}
               />
             ) : (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-fadeIn">
-                {/* Survey Progress Bar */}
-                <div className="bg-slate-900 text-white p-4 sm:p-6 border-b border-slate-800">
-                  <div className="flex items-center justify-between text-xs font-semibold mb-2">
-                    <span className="text-orange-400">
-                      ขั้นตอนที่ {surveyStep} {isFeedbackOnly && surveyStep === 7 ? '(ข้ามไปหน้าตรวจทาน)' : 'จาก 6'}
+              <div className="bg-white text-slate-900 rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-fadeIn">
+                {/* Survey Matchday Header & Stepper */}
+                <div className="bg-[#0F172A] text-white p-5 sm:p-6 border-b-2 border-red-600">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2">
+                    <span className="text-amber-400 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 live-dot"></span>
+                      ขั้นตอนที่ {surveyStep} {isFeedbackOnly && surveyStep === 7 ? '(ข้ามไปตรวจทาน)' : 'จาก 6'}
                     </span>
-                    <span className="text-slate-400">
-                      {Math.round(((isFeedbackOnly && surveyStep === 7 ? 6 : surveyStep) / 6) * 100)}%
+                    <span className="text-slate-300 font-mono">
+                      {Math.round(((isFeedbackOnly && surveyStep === 7 ? 6 : surveyStep) / 6) * 100)}% เสร็จสิ้น
                     </span>
                   </div>
 
                   {/* Progress Line */}
-                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
                     <div 
-                      className="bg-orange-500 h-full rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 h-full rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, Math.round(((isFeedbackOnly && surveyStep === 7 ? 6 : surveyStep) / 6) * 100))}%` }}
                     ></div>
                   </div>
 
-                  {/* Breadcrumb Steps for Large Screens */}
-                  <div className="hidden sm:flex items-center justify-between mt-3 text-[11px] text-slate-400 font-medium">
-                    <span className={surveyStep === 1 ? 'text-orange-400 font-bold' : ''}>1. หน่วยงาน</span>
-                    <span className={surveyStep === 2 ? 'text-orange-400 font-bold' : ''}>2. ความคิดเห็น</span>
-                    <span className={surveyStep === 3 ? 'text-orange-400 font-bold' : ''}>3. ความจำนง</span>
-                    <span className={surveyStep === 4 ? 'text-orange-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>4. กิจกรรม</span>
-                    <span className={surveyStep === 5 ? 'text-orange-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>5. ช่วยงาน</span>
-                    <span className={surveyStep === 6 ? 'text-orange-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>6. ข้อมูลติดต่อ</span>
-                    <span className={surveyStep === 7 ? 'text-orange-400 font-bold' : ''}>ตรวจทาน</span>
+                  {/* Breadcrumb Steps */}
+                  <div className="hidden sm:flex items-center justify-between mt-3.5 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                    <span className={surveyStep === 1 ? 'text-amber-400 font-bold' : ''}>1. หน่วยงาน</span>
+                    <span className={surveyStep === 2 ? 'text-amber-400 font-bold' : ''}>2. ความคิดเห็น</span>
+                    <span className={surveyStep === 3 ? 'text-amber-400 font-bold' : ''}>3. ความจำนง</span>
+                    <span className={surveyStep === 4 ? 'text-amber-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>4. กิจกรรม</span>
+                    <span className={surveyStep === 5 ? 'text-amber-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>5. ช่วยงาน</span>
+                    <span className={surveyStep === 6 ? 'text-amber-400 font-bold' : isFeedbackOnly ? 'line-through text-slate-600' : ''}>6. ข้อมูลติดต่อ</span>
+                    <span className={surveyStep === 7 ? 'text-amber-400 font-bold' : ''}>7. ตรวจทาน</span>
                   </div>
                 </div>
 
-                {/* Form Step Body */}
-                <div className="p-5 sm:p-8">
+                {/* Form Step Body - HIGH CONTRAST CLEAN WHITE */}
+                <div className="p-6 sm:p-8 bg-white text-slate-900">
                   {surveyStep === 1 && (
                     <Step1Respondent
                       formData={formData}
@@ -585,7 +719,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={handlePrevStep}
-                          className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
+                          className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
                         >
                           <ArrowLeft className="w-4 h-4" />
                           ย้อนกลับ
@@ -594,7 +728,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setCurrentView('home')}
-                          className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
+                          className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer"
                         >
                           กลับหน้าหลัก
                         </button>
@@ -603,10 +737,10 @@ export default function App() {
                       <button
                         type="button"
                         onClick={handleNextStep}
-                        className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-2 transition-colors cursor-pointer"
+                        className="px-7 py-2.5 rounded-xl btn-manutd-red flex items-center gap-2 cursor-pointer text-xs sm:text-sm font-black uppercase tracking-wider shadow-md"
                       >
                         <span>
-                          {surveyStep === 3 && isFeedbackOnly ? 'ข้ามไปยังหน้าตรวจทาน' : 'ถัดไป'}
+                          {surveyStep === 3 && isFeedbackOnly ? 'ข้ามไปยังหน้าตรวจทาน' : 'ถัดไป (NEXT)'}
                         </span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
@@ -624,35 +758,51 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-4">
+      {/* Official Premier League & Manchester United Club Footer */}
+      <footer className="mt-auto bg-[#0F172A] text-slate-300 text-xs py-8 border-t-4 border-[#DA291C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-4 text-center sm:text-left">
-            <div>
-              <div className="font-bold text-white text-sm">
-                แบบสำรวจความคิดเห็นโครงการจัดตั้งชมรมฟุตบอลบุคลากรมหาวิทยาลัยนเรศวร
-              </div>
-              <div className="text-slate-400 text-xs mt-0.5">
-                เริ่มดำเนินการเตรียมจัดตั้ง 1 ตุลาคม 2569 • เปิดรับฟังความคิดเห็น 8–31 ตุลาคม 2569 เวลา 23.59 น.
+            <div className="flex items-center gap-3">
+              <NufcCrest size="sm" />
+              <div>
+                <div className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+                  <span>NARESUAN UNIVERSITY FOOTBALL CLUB</span>
+                  <span className="text-amber-400">• EST. 2569</span>
+                </div>
+                <div className="text-slate-400 text-xs mt-0.5">
+                  โครงการจัดตั้งชมรมฟุตบอลและกีฬาฟุตบอลบุคลากรมหาวิทยาลัยนเรศวร • จังหวัดพิษณุโลก
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setCurrentView('home')}
+                className="text-xs text-slate-300 hover:text-white font-bold cursor-pointer"
+              >
+                หน้าหลัก
+              </button>
               <button
                 onClick={() => setIsDraftModalOpen(true)}
-                className="text-xs text-orange-400 hover:text-orange-300 underline cursor-pointer"
+                className="text-xs text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
               >
                 อ่านร่างโครงการฉบับเต็ม
+              </button>
+              <button
+                onClick={() => setCurrentView('admin')}
+                className="text-xs text-red-400 hover:text-red-300 font-bold cursor-pointer bg-white/10 px-2.5 py-1 rounded"
+              >
+                🔒 ผู้ดูแลระบบ (Admin)
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 text-center sm:text-left font-mono">
             <p>
               {STATUS_DISCLAIMER_TEXT}
             </p>
-            <p className="shrink-0">
-              เขตเวลาประเทศไทย (UTC+07:00)
+            <p className="shrink-0 text-slate-400">
+              THAILAND TIME (UTC+07:00)
             </p>
           </div>
         </div>
